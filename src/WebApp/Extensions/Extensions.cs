@@ -114,8 +114,7 @@ public static class Extensions
     public static async Task<string?> GetBuyerIdAsync(this AuthenticationStateProvider authenticationStateProvider)
     {
         var authState = await authenticationStateProvider.GetAuthenticationStateAsync();
-        var user = authState.User;
-        return user.FindFirst("sub")?.Value;
+        return authState.User.GetUserId();
     }
 
     public static async Task<string?> GetUserNameAsync(this AuthenticationStateProvider authenticationStateProvider)

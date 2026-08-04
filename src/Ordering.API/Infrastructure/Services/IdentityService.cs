@@ -3,8 +3,8 @@
 public class IdentityService(IHttpContextAccessor context) : IIdentityService
 {
     public string GetUserIdentity()
-        => context.HttpContext?.User.FindFirst("sub")?.Value;
+        => context.HttpContext?.User.GetUserId();
 
     public string GetUserName()
-        => context.HttpContext?.User.Identity?.Name;
+        => context.HttpContext?.User.GetUserName();
 }
