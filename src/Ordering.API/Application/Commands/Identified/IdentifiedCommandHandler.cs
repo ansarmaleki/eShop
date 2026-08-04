@@ -50,9 +50,10 @@ public abstract class IdentifiedCommandHandler<T, R> : IRequestHandler<Identifie
         else
         {
             await _requestManager.CreateRequestForCommandAsync<T>(message.Id);
+
+            var command = message.Command;
             try
             {
-                var command = message.Command;
                 var commandName = command.GetGenericTypeName();
                 var idProperty = string.Empty;
                 var commandId = string.Empty;
@@ -100,9 +101,11 @@ public abstract class IdentifiedCommandHandler<T, R> : IRequestHandler<Identifie
 
                 return result;
             }
-            catch
+            catch (Exception ex)
             {
-                return default;
+                _logger.LogError(ex, "Error handling command: {CommandName} ({@Command})", command.GetGenericTypeName(), command);
+
+                throw;
             }
         }
     }

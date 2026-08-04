@@ -2,7 +2,7 @@
 
 namespace eShop.WebhookClient.Services;
 
-public class HooksRepository
+public class HooksRepository(ILogger<HooksRepository> logger)
 {
     private readonly ConcurrentQueue<WebHookReceived> _data = new();
     private readonly ConcurrentDictionary<OnChangeSubscription, object?> _onChangeSubscriptions = new();
@@ -13,15 +13,8 @@ public class HooksRepository
 
         foreach (var subscription in _onChangeSubscriptions)
         {
-            try
-            {
-                _ = subscription.Key.NotifyAsync();
-            }
-            catch (Exception)
-            {
-                // It's the subscriber's responsibility to report/handle any exceptions
-                // that occur during their callback
-            }
+            // The callback is fire-and-forget, so faults would otherwise go unobserved.
+            _ = NotifySubscriberAsync(subscription.Key);
         }
 
         return Task.CompletedTask;
@@ -30,6 +23,18 @@ public class HooksRepository
     public Task<IEnumerable<WebHookReceived>> GetAll()
     {
         return Task.FromResult(_data.AsEnumerable());
+    }
+
+    private async Task NotifySubscriberAsync(OnChangeSubscription subscription)
+    {
+        try
+        {
+            await subscription.NotifyAsync();
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error notifying subscriber of a received webhook");
+        }
     }
 
     public IDisposable Subscribe(Func<Task> callback)

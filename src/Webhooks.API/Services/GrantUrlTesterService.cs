@@ -26,9 +26,9 @@ class GrantUrlTesterService(IHttpClientFactory factory, ILogger<IGrantUrlTesterS
 
             return response.IsSuccessStatusCode && tokenReceived == tokenExpected;
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
         {
-            logger.LogWarning("Exception {TypeName} when sending OPTIONS request. Url can't be granted.", ex.GetType().Name);
+            logger.LogWarning(ex, "Error sending OPTIONS request to {Url}. Url can't be granted.", url);
 
             return false;
         }

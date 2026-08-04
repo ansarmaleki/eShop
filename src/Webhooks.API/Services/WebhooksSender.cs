@@ -10,7 +10,7 @@ public class WebhooksSender(IHttpClientFactory httpClientFactory, ILogger<Webhoo
         await Task.WhenAll(tasks);
     }
 
-    private Task OnSendData(WebhookSubscription subs, string jsonData, HttpClient client)
+    private async Task OnSendData(WebhookSubscription subs, string jsonData, HttpClient client)
     {
         var request = new HttpRequestMessage()
         {
@@ -29,7 +29,20 @@ public class WebhooksSender(IHttpClientFactory httpClientFactory, ILogger<Webhoo
             logger.LogDebug("Sending hook to {DestUrl} of type {Type}", subs.DestUrl, subs.Type);
         }
 
-        return client.SendAsync(request);
+        try
+        {
+            var response = await client.SendAsync(request);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                logger.LogWarning("Hook to {DestUrl} of type {Type} responded with status code {StatusCode}", subs.DestUrl, subs.Type, response.StatusCode);
+            }
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+        {
+            // A single unreachable receiver must not prevent the remaining receivers from being notified.
+            logger.LogError(ex, "Error sending hook to {DestUrl} of type {Type}", subs.DestUrl, subs.Type);
+        }
     }
 
 }

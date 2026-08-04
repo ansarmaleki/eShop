@@ -30,7 +30,16 @@ namespace eShop.OrderProcessor.Services
                     logger.LogDebug("GracePeriodManagerService background task is doing background work.");
                 }
 
-                await CheckConfirmedGracePeriodOrders();
+                try
+                {
+                    await CheckConfirmedGracePeriodOrders();
+                }
+                catch (Exception exception)
+                {
+                    // Log and keep the background service alive so that a transient failure
+                    // doesn't silently stop grace period processing for good.
+                    logger.LogError(exception, "Error checking confirmed grace period orders");
+                }
 
                 await Task.Delay(delayTime, stoppingToken);
             }
@@ -86,10 +95,10 @@ namespace eShop.OrderProcessor.Services
             }
             catch (NpgsqlException exception)
             {
-                logger.LogError(exception, "Fatal error establishing database connection");
-            }
+                logger.LogError(exception, "Error querying confirmed grace period orders");
 
-            return [];
+                throw;
+            }
         }
     }
 }

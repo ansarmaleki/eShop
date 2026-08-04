@@ -168,9 +168,9 @@ public sealed class RabbitMQEventBus(
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Error Processing message \"{Message}\"", message);
+            logger.LogError(ex, "Error Processing message \"{Message}\"", message);
 
-            activity.SetExceptionTags(ex);
+            activity?.SetExceptionTags(ex);
         }
 
         // Even on exception we take the message off the queue.
@@ -195,7 +195,8 @@ public sealed class RabbitMQEventBus(
         }
 
         // Deserialize the event
-        var integrationEvent = DeserializeMessage(message, eventType);
+        var integrationEvent = DeserializeMessage(message, eventType)
+            ?? throw new InvalidOperationException($"Unable to deserialize message for event name {eventName} as {eventType.FullName}");
         
         // REVIEW: This could be done in parallel
 
@@ -235,6 +236,7 @@ public sealed class RabbitMQEventBus(
                 _rabbitMQConnection = serviceProvider.GetRequiredService<IConnection>();
                 if (!_rabbitMQConnection.IsOpen)
                 {
+                    logger.LogCritical("RabbitMQ connection is not open; no integration events will be consumed");
                     return;
                 }
 
@@ -283,7 +285,7 @@ public sealed class RabbitMQEventBus(
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Error starting RabbitMQ connection");
+                logger.LogCritical(ex, "Error starting RabbitMQ connection; no integration events will be consumed");
             }
         },
         TaskCreationOptions.LongRunning);
